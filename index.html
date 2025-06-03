@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import * as XLSX from 'xlsx';
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
 
 const MattressDashboard = () => {
   // File handling state
@@ -40,7 +40,6 @@ const MattressDashboard = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [uploadError, setUploadError] = useState(null);
     const [isValidating, setIsValidating] = useState(false);
-    const [loadingDemo, setLoadingDemo] = useState(false);
     
     const handleDragOver = (e) => {
       e.preventDefault();
@@ -138,38 +137,6 @@ const MattressDashboard = () => {
       }
     };
     
-    const loadDemoData = async () => {
-      setLoadingDemo(true);
-      setUploadError(null);
-      
-      try {
-        // Try to load the demo file
-        const response = await window.fs.readFile('20250330_reportWrittenSalesDollars.xlsx');
-        
-        // Parse the Excel data
-        const workbook = XLSX.read(response, { cellDates: true });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        
-        // Validate structure
-        const validation = validateExcelStructure(jsonData);
-        if (!validation.valid) {
-          throw new Error(validation.message);
-        }
-        
-        // If valid, store the file data
-        setFileData(jsonData);
-        setUploadedFile({ name: 'Demo: 20250330_reportWrittenSalesDollars.xlsx' });
-        setShowOnboarding(false);
-        
-      } catch (err) {
-        console.error("Error loading demo data:", err);
-        setUploadError("Demo data file not found. Please upload your own Excel file.");
-      } finally {
-        setLoadingDemo(false);
-      }
-    };
-    
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-2xl w-full">
@@ -227,38 +194,6 @@ const MattressDashboard = () => {
             )}
           </div>
           
-          <div className="mt-6 text-center">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-50 text-gray-500">Or try with demo data</span>
-              </div>
-            </div>
-            
-            <button
-              onClick={loadDemoData}
-              disabled={loadingDemo || isValidating}
-              className="mt-4 px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center mx-auto"
-            >
-              {loadingDemo ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Loading Demo...
-                </>
-              ) : (
-                <>
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Load Demo Data
-                </>
-              )}
-            </button>
-            <p className="text-xs text-gray-500 mt-2">
-              Explore the dashboard with sample mattress sales data
-            </p>
-          </div>
-          
           <div className="mt-8 bg-blue-50 rounded-lg p-6">
             <h4 className="font-semibold text-blue-900 mb-3">Expected File Structure</h4>
             <div className="space-y-2 text-sm text-blue-800">
@@ -276,9 +211,6 @@ const MattressDashboard = () => {
               </ul>
               <p className="mt-3 text-xs text-gray-600">
                 The file should have at least 36 columns with order details and product information.
-              </p>
-              <p className="mt-2 text-xs text-blue-700 font-medium">
-                Not sure about the format? Try the demo mode first to see how the dashboard works!
               </p>
             </div>
           </div>
@@ -880,20 +812,13 @@ const MattressDashboard = () => {
   
   // Header with file info and change file button
   const DashboardHeader = () => {
-    const isDemo = uploadedFile?.name?.startsWith('Demo:');
-    
     return (
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-blue-800">Mattress Sales Dashboard</h1>
         <div className="flex items-center gap-4">
-          {isDemo && (
-            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-              DEMO MODE
-            </span>
-          )}
           <div className="text-sm text-gray-600">
             <FileSpreadsheet className="inline h-4 w-4 mr-1" />
-            {uploadedFile?.name?.replace('Demo: ', '') || 'No file loaded'}
+            {uploadedFile?.name || 'No file loaded'}
           </div>
           <button
             onClick={() => {
@@ -905,7 +830,7 @@ const MattressDashboard = () => {
             }}
             className="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded"
           >
-            {isDemo ? 'Exit Demo' : 'Change File'}
+            Change File
           </button>
         </div>
       </div>
