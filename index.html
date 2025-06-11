@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mattress Sales Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Container styles */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header styles */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .header h1 {
+            font-size: 30px;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        /* Card styles */
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .card h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        /* Upload zone */
+        .upload-zone {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 48px;
+            text-align: center;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        .upload-zone.dragging {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            color: #9ca3af;
+        }
+        
+        /* Button styles */
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+        
+        /* Input styles */
+        input[type="date"] {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        /* Grid styles */
+        .grid {
+            display: grid;
+            gap: 16px;
+        }
+        
+        .grid-cols-1 {
+            grid-template-columns: repeat(1, 1fr);
+        }
+        
+        @media (min-width: 768px) {
+            .grid-cols-3 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .grid-cols-4 {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        /* Metric card */
+        .metric-card {
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .metric-card h3 {
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .metric-card p {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .metric-blue {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .metric-green {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .metric-purple {
+            background-color: #e9d5ff;
+            color: #6b21a8;
+        }
+        
+        .metric-orange {
+            background-color: #fed7aa;
+            color: #9a3412;
+        }
+        
+        /* Table styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        th {
+            background-color: #f9fafb;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        
+        /* Brand/Category cards */
+        .item-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .item-card:hover {
+            background-color: #eff6ff;
+            border-color: #3b82f6;
+        }
+        
+        .item-card h3 {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        /* Error styles */
+        .error {
+            background-color: #fee;
+            border: 1px solid #fcc;
+            padding: 16px;
+            border-radius: 6px;
+            color: #991b1b;
+            display: flex;
+            align-items: start;
+            gap: 8px;
+        }
+        
+        .error-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Utility classes */
+        .text-center { text-align: center; }
+        .text-sm { font-size: 14px; }
+        .text-xs { font-size: 12px; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-600 { color: #4b5563; }
+        .font-medium { font-weight: 500; }
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+        .mb-2 { margin-bottom: 8px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mb-6 { margin-bottom: 24px; }
+        .mb-8 { margin-bottom: 32px; }
+        .mt-4 { margin-top: 16px; }
+        .mt-8 { margin-top: 32px; }
+        .gap-4 { gap: 16px; }
+        .flex { display: flex; }
+        .flex-wrap { flex-wrap: wrap; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* Info box */
+        .info-box {
+            background-color: #dbeafe;
+            border-radius: 8px;
+            padding: 24px;
+            margin-top: 32px;
+        }
+        
+        .info-box h4 {
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 12px;
+        }
+        
+        .info-box ul {
+            list-style: disc;
+            margin-left: 20px;
+            color: #1e40af;
+        }
+        
+        .info-box li {
+            margin-bottom: 4px;
+        }
+        
+        /* Back button */
+        .back-button {
+            color: #3b82f6;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .back-button:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <!-- Onboarding Screen -->
+    <div id="onboarding" class="container">
+        <div style="max-width: 800px; margin: 60px auto;">
+            <div class="text-center mb-8">
+                <h1 style="font-size: 36px; font-weight: bold; color: #1e40af; margin-bottom: 16px;">Mattress Sales Dashboard</h1>
+                <p style="color: #6b7280; font-size: 18px;">Upload your sales data Excel file to get started</p>
+            </div>
+            
+            <div id="dropZone" class="upload-zone">
+                <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                
+                <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Drag and drop your Excel file here</h3>
+                <p class="text-gray-500 mb-4">or</p>
+                
+                <label>
+                    <input type="file" id="fileInput" accept=".xlsx">
+                    <span class="btn btn-primary">Browse Files</span>
+                </label>
+                
+                <p class="text-sm text-gray-500 mt-4">Supported format: .xlsx</p>
+                
+                <div id="uploadError" class="hidden error mt-4">
+                    <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <p style="font-weight: 500;">Upload Error</p>
+                        <p id="errorMessage" class="text-sm"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <h4>Expected File Structure</h4>
+                <div class="text-sm">
+                    <p class="mb-2">Your Excel file should contain sales data with the following columns:</p>
+                    <ul>
+                        <li>Column A: Quantity</li>
+                        <li>Column B: SKU</li>
+                        <li>Column C: Product Description</li>
+                        <li>Column D: Price</li>
+                        <li>Column P: Vendor</li>
+                        <li>Column Q: Category (MATT for mattresses)</li>
+                        <li>Column X: Order Number</li>
+                        <li>Column Y: Order Date</li>
+                        <li>Column AJ: Location</li>
+                    </ul>
+                    <p class="text-xs text-gray-600 mt-4">
+                        The file should have at least 36 columns with order details and product information.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden">
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <h1>Mattress Sales Dashboard</h1>
+                <div class="header-controls">
+                    <div class="text-sm text-gray-600">
+                        <svg style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span id="fileName">No file loaded</span>
+                    </div>
+                    <button id="changeFileBtn" class="btn btn-secondary">
+                        Change File
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Loading -->
+            <div id="loading" class="hidden card">
+                <div class="text-center">
+                    <div class="spinner mb-4"></div>
+                    <p style="font-size: 20px; font-weight: 600; color: #3b82f6;">Processing sales data...</p>
+                </div>
+            </div>
+            
+            <!-- Error -->
+            <div id="dashboardError" class="hidden error">
+                <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                    <p class="font-bold">Error processing data</p>
+                    <p id="dashboardErrorMessage"></p>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div id="dashboardContent" class="hidden">
+                <!-- Date Filter -->
+                <div class="card">
+                    <h2>Date Range Filter</h2>
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">Start Date</label>
+                            <input type="date" id="startDate">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">End Date</label>
+                            <input type="date" id="endDate">
+                        </div>
+                        <div style="margin-left: 16px;" class="text-sm text-gray-500">
+                            <p id="availableDateRange">Available data: Loading...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Summary Metrics -->
+                <div class="card">
+                    <h2>Dashboard Summary</h2>
+                    <div class="grid grid-cols-1 grid-cols-4">
+                        <div class="metric-card metric-blue">
+                            <h3>Total Mattress Revenue</h3>
+                            <p id="totalRevenue">$0</p>
+                        </div>
+                        <div class="metric-card metric-green">
+                            <h3>Mattress Units Sold</h3>
+                            <p id="unitsSold">0</p>
+                        </div>
+                        <div class="metric-card metric-purple">
+                            <h3>Average Mattress Price</h3>
+                            <p id="avgPrice">$0</p>
+                        </div>
+                        <div class="metric-card metric-orange">
+                            <h3>Attachment Rate</h3>
+                            <p id="attachmentRate">0%</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Top Brands -->
+                <div class="card">
+                    <h2>Top Mattresses by Brand</h2>
+                    <div id="topBrandsContent"></div>
+                </div>
+                
+                <!-- Attachment Rate Chart -->
+                <div class="card">
+                    <h2>Attachment Rate Analysis</h2>
+                    <div style="height: 400px; position: relative;">
+                        <canvas id="attachmentChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Top Attachment Products -->
+                <div class="card">
+                    <h2>Top Attachment Products By Category</h2>
+                    <div id="attachmentProductsContent"></div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="text-center text-gray-500 text-sm mt-8">
+                    <p id="dateRangeInfo">Date range: Loading...</p>
+                    <p id="productCounts" style="margin-top: 4px;">Total products: 0 | Filtered products: 0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if required libraries loaded
+        window.addEventListener('load', function() {
+            let errors = [];
+            if (typeof XLSX === 'undefined') errors.push('XLSX library');
+            if (typeof Chart === 'undefined') errors.push('Chart.js');
+            
+            if (errors.length > 0) {
+                alert('Failed to load required libraries: ' + errors.join(', ') + '. Please check your internet connection and refresh the page.');
+            }
+        });
+        
+        // Global state
+        let allData = [];
+        let filteredData = [];
+        let chart = null;
+        let availableDateRange = {
+            startDate: new Date('2024-01-01'),
+            endDate: new Date('2025-03-30')
+        };
+        
+        // DOM Elements
+        const onboarding = document.getElementById('onboarding');
+        const dashboard = document.getElementById('dashboard');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadError = document.getElementById('uploadError');
+        const errorMessage = document.getElementById('errorMessage');
+        const loading = document.getElementById('loading');
+        const dashboardError = document.getElementById('dashboardError');
+        const dashboardErrorMessage = document.getElementById('dashboardErrorMessage');
+        const dashboardContent = document.getElementById('dashboardContent');
+        const fileName = document.getElementById('fileName');
+        const changeFileBtn = document.getElementById('changeFileBtn');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        
+        // File handling
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragging');
+        });
+        
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragging');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragging');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        changeFileBtn.addEventListener('click', () => {
+            onboarding.classList.remove('hidden');
+            dashboard.classList.add('hidden');
+            allData = [];
+            filteredData = [];
+            fileInput.value = '';
+        });
+        
+        startDateInput.addEventListener('change', () => updateDateRange());
+        endDateInput.addEventListener('change', () => updateDateRange());
+        
+        function handleFile(file) {
+            if (!file.name.endsWith('.xlsx')) {
+                showError('Please upload an Excel file (.xlsx)');
+                return;
+            }
+            
+            fileName.textContent = file.name;
+            processFile(file);
+        }
+        
+        function showError(message) {
+            uploadError.classList.remove('hidden');
+            errorMessage.textContent = message;
+        }
+        
+        async function processFile(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { cellDates: true });
+                
+                if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                    throw new Error('No sheets found in the Excel file.');
+                }
+                
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                
+                // Validate structure
+                if (!jsonData || jsonData.length < 2) {
+                    throw new Error('File appears to be empty or has insufficient data.');
+                }
+                
+                const firstRow = jsonData[0];
+                if (!firstRow || firstRow.length < 36) {
+                    throw new Error('File doesn\'t have the expected number of columns (minimum 36 required).');
+                }
+                
+                // Process data
+                onboarding.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+                loading.classList.remove('hidden');
+                dashboardContent.classList.add('hidden');
+                dashboardError.classList.add('hidden');
+                
+                setTimeout(() => {
+                    try {
+                        processData(jsonData);
+                    } catch (err) {
+                        showDashboardError(err.message);
+                    }
+                }, 100);
+                
+            } catch (err) {
+                showError(err.message || 'Failed to process the Excel file.');
+            }
+        }
+        
+        function showDashboardError(message) {
+            loading.classList.add('hidden');
+            dashboardError.classList.remove('hidden');
+            dashboardErrorMessage.textContent = message;
+        }
+        
+        function processData(jsonData) {
+            const products = [];
+            
+            // Skip header row
+            for (let i = 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row || row.length < 20) continue;
+                
+                // Skip total rows
+                if (row[0] && String(row[0]).startsWith('Total For Order')) continue;
+                
+                const orderDate = row[24] instanceof Date ? row[24] : new Date(row[24]);
+                if (isNaN(orderDate.getTime())) continue;
+                
+                const product = {
+                    quantity: Number(row[0]) || 0,
+                    sku: row[1] || '',
+                    description: row[2] || '',
+                    price: Number(row[3]) || 0,
+                    vendor: row[15] || '',
+                    category: String(row[16] || ''),
+                    orderNumber: row[23] || '',
+                    orderDate: orderDate,
+                    location: row[35] || ''
+                };
+                
+                products.push(product);
+            }
+            
+            allData = products;
+            
+            // Find date range
+            const dates = products
+                .filter(p => p.orderDate && !isNaN(p.orderDate.getTime()))
+                .map(p => p.orderDate.getTime());
+            
+            if (dates.length > 0) {
+                availableDateRange = {
+                    startDate: new Date(Math.min(...dates)),
+                    endDate: new Date(Math.max(...dates))
+                };
+            }
+            
+            // Set initial date range
+            startDateInput.value = formatDateForInput(availableDateRange.startDate);
+            endDateInput.value = formatDateForInput(availableDateRange.endDate);
+            startDateInput.min = formatDateForInput(availableDateRange.startDate);
+            startDateInput.max = formatDateForInput(availableDateRange.endDate);
+            endDateInput.min = formatDateForInput(availableDateRange.startDate);
+            endDateInput.max = formatDateForInput(availableDateRange.endDate);
+            
+            document.getElementById('availableDateRange').textContent = 
+                `Available data: ${availableDateRange.startDate.toLocaleDateString()} to ${availableDateRange.endDate.toLocaleDateString()}`;
+            
+            // Initial analysis
+            updateDateRange();
+            
+            loading.classList.add('hidden');
+            dashboardContent.classList.remove('hidden');
+        }
+        
+        function formatDateForInput(date) {
+            if (!date || isNaN(date.getTime())) return '';
+            return date.toISOString().split('T')[0];
+        }
+        
+        function updateDateRange() {
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+            
+            filteredData = allData.filter(product => {
+                const productDate = new Date(product.orderDate);
+                return productDate >= startDate && productDate <= endDate;
+            });
+            
+            analyzeData();
+            
+            document.getElementById('dateRangeInfo').textContent = 
+                `Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
+            document.getElementById('productCounts').textContent = 
+                `Total products: ${allData.length} | Filtered products: ${filteredData.length}`;
+        }
+        
+        function isAdjustable(product) {
+            if (!product.description) return false;
+            const desc = product.description.toLowerCase();
+            return desc.includes('adjustable') || desc.includes('motion') || desc.includes('power base');
+        }
+        
+        function getBrand(product) {
+            if (!product || (!product.description && !product.vendor)) return 'Other';
+            
+            const desc = (product.description || '').toLowerCase();
+            const vendor = (product.vendor || '').toLowerCase();
+            
+            if (desc.includes('sealy') || vendor.includes('sealy')) return 'Sealy';
+            if (desc.includes('stearns') || desc.includes('foster')) return 'Stearns & Foster';
+            if (desc.includes('tempur') || vendor.includes('temp')) return 'Tempur-Pedic';
+            if (desc.includes('purple') || vendor.includes('purpl')) return 'Purple';
+            if (desc.includes('mlily') || vendor.includes('mlily')) return 'MLily';
+            if (desc.includes('ashley') || vendor.includes('ashle')) return 'Ashley';
+            
+            return 'Other';
+        }
+        
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(value);
+        }
+        
+        function analyzeData() {
+            // Get mattresses
+            const mattresses = filteredData.filter(p => p.category === 'MATT' && !isAdjustable(p));
+            
+            // Calculate metrics
+            const revenue = mattresses.reduce((sum, p) => sum + p.price, 0);
+            const units = mattresses.reduce((sum, p) => sum + p.quantity, 0);
+            const avgPrice = units > 0 ? revenue / units : 0;
+            
+            // Calculate attachment rate
+            const orders = {};
+            filteredData.forEach(product => {
+                if (!product.orderNumber) return;
+                
+                if (!orders[product.orderNumber]) {
+                    orders[product.orderNumber] = {
+                        hasMattress: false,
+                        hasAttachment: false
+                    };
+                }
+                
+                if (product.category === 'MATT' && !isAdjustable(product)) {
+                    orders[product.orderNumber].hasMattress = true;
+                } else if (product.category && product.category !== 'MATT') {
+                    orders[product.orderNumber].hasAttachment = true;
+                }
+            });
+            
+            let mattressOrderCount = 0;
+            let attachmentOrderCount = 0;
+            
+            Object.values(orders).forEach(order => {
+                if (order.hasMattress) {
+                    mattressOrderCount++;
+                    if (order.hasAttachment) {
+                        attachmentOrderCount++;
+                    }
+                }
+            });
+            
+            const attachmentRate = mattressOrderCount > 0 ? (attachmentOrderCount / mattressOrderCount * 100) : 0;
+            
+            // Update metrics display
+            document.getElementById('totalRevenue').textContent = formatCurrency(revenue);
+            document.getElementById('unitsSold').textContent = units;
+            document.getElementById('avgPrice').textContent = formatCurrency(avgPrice);
+            document.getElementById('attachmentRate').textContent = attachmentRate.toFixed(1) + '%';
+            
+            // Analyze brands
+            analyzeBrands(mattresses);
+            
+            // Analyze attachments
+            analyzeAttachments();
+        }
+        
+        function analyzeBrands(mattresses) {
+            const brandGroups = {};
+            
+            mattresses.forEach(product => {
+                const brand = getBrand(product);
+                
+                if (!brandGroups[brand]) {
+                    brandGroups[brand] = {
+                        brand,
+                        products: [],
+                        revenue: 0,
+                        units: 0
+                    };
+                }
+                
+                brandGroups[brand].products.push(product);
+                brandGroups[brand].revenue += product.price;
+                brandGroups[brand].units += product.quantity;
+            });
+            
+            // Get top models for each brand
+            Object.values(brandGroups).forEach(group => {
+                const modelGroups = {};
+                
+                group.products.forEach(product => {
+                    if (!product.description) return;
+                    
+                    if (!modelGroups[product.description]) {
+                        modelGroups[product.description] = {
+                            description: product.description,
+                            sku: product.sku,
+                            revenue: 0,
+                            units: 0
+                        };
+                    }
+                    
+                    modelGroups[product.description].revenue += product.price;
+                    modelGroups[product.description].units += product.quantity;
+                });
+                
+                group.topModels = Object.values(modelGroups)
+                    .sort((a, b) => b.revenue - a.revenue)
+                    .slice(0, 5)
+                    .map(model => ({
+                        ...model,
+                        avgPrice: model.units > 0 ? model.revenue / model.units : 0
+                    }));
+            });
+            
+            const topBrands = Object.values(brandGroups)
+                .sort((a, b) => b.revenue - a.revenue);
+            
+            // Display brands
+            const brandsContent = document.getElementById('topBrandsContent');
+            if (topBrands.length === 0) {
+                brandsContent.innerHTML = '<p class="text-gray-500">No mattress data available for the selected date range.</p>';
+            } else {
+                brandsContent.innerHTML = `
+                    <div class="grid grid-cols-1 grid-cols-3">
+                        ${topBrands.map(brand => `
+                            <div class="item-card" onclick="showBrandDetails('${brand.brand}')">
+                                <h3>${brand.brand}</h3>
+                                <div class="text-sm">
+                                    <div class="font-medium mb-2">Top Models</div>
+                                    ${brand.topModels.slice(0, 2).map(model => `
+                                        <div class="mb-2">
+                                            <div class="truncate font-medium" title="${model.description}">
+                                                ${model.description}
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-xs text-gray-500">Units: ${model.units}</span>
+                                                <span>${formatCurrency(model.revenue)}</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            window.topBrands = topBrands;
+        }
+        
+        function showBrandDetails(brandName) {
+            const brand = window.topBrands.find(b => b.brand === brandName);
+            if (!brand) return;
+            
+            const brandsContent = document.getElementById('topBrandsContent');
+            brandsContent.innerHTML = `
+                <div>
+                    <a href="#" onclick="analyzeBrands(filteredData.filter(p => p.category === 'MATT' && !isAdjustable(p))); return false;" 
+                       class="back-button">
+                        ← Back to all brands
+                    </a>
+                    <h3 class="font-semibold" style="font-size: 18px;">${brandName}</h3>
+                    
+                    <div style="overflow-x: auto; margin-top: 16px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mattress</th>
+                                    <th>SKU</th>
+                                    <th>Units Sold</th>
+                                    <th>Revenue</th>
+                                    <th>Avg Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${brand.topModels.map((model, idx) => `
+                                    <tr>
+                                        <td class="font-medium">${model.description}</td>
+                                        <td>${model.sku || 'N/A'}</td>
+                                        <td>${model.units}</td>
+                                        <td>${formatCurrency(model.revenue)}</td>
+                                        <td>${formatCurrency(model.avgPrice)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function analyzeAttachments() {
+            // Find mattress orders
+            const mattressOrders = new Set();
+            
+            filteredData.forEach(product => {
+                if (product.category === 'MATT' && !isAdjustable(product) && product.orderNumber) {
+                    mattressOrders.add(product.orderNumber);
+                }
+            });
+            
+            // Analyze attachments
+            const categories = {};
+            
+            filteredData.forEach(product => {
+                if (!product.orderNumber || !mattressOrders.has(product.orderNumber)) return;
+                if (!product.category || product.category === 'MATT') return;
+                
+                if (!categories[product.category]) {
+                    categories[product.category] = {
+                        name: product.category,
+                        count: 0,
+                        revenue: 0,
+                        products: []
+                    };
+                }
+                
+                categories[product.category].count++;
+                categories[product.category].revenue += product.price;
+                categories[product.category].products.push(product);
+            });
+            
+            // Calculate rates and sort
+            const categoryData = Object.values(categories)
+                .map(cat => ({
+                    ...cat,
+                    rate: parseFloat((cat.count / mattressOrders.size * 100).toFixed(1))
+                }))
+                .sort((a, b) => b.revenue - a.revenue)
+                .slice(0, 6);
+            
+            // Process products within each category
+            categoryData.forEach(category => {
+                const productGroups = {};
+                
+                category.products.forEach(product => {
+                    if (!product.description) return;
+                    
+                    if (!productGroups[product.description]) {
+                        productGroups[product.description] = {
+                            description: product.description,
+                            sku: product.sku,
+                            count: 0,
+                            revenue: 0,
+                            orders: new Set()
+                        };
+                    }
+                    
+                    productGroups[product.description].count += product.quantity;
+                    productGroups[product.description].revenue += product.price;
+                    productGroups[product.description].orders.add(product.orderNumber);
+                });
+                
+                // Calculate stats
+                Object.values(productGroups).forEach(product => {
+                    product.avgPrice = product.count > 0 ? product.revenue / product.count : 0;
+                    product.attachmentRate = (product.orders.size / mattressOrders.size * 100).toFixed(1);
+                    product.orderCount = product.orders.size;
+                });
+                
+                category.topProducts = Object.values(productGroups)
+                    .sort((a, b) => b.revenue - a.revenue)
+                    .slice(0, 5);
+            });
+            
+            // Update chart
+            updateAttachmentChart(categoryData);
+            
+            // Display attachment products
+            displayAttachmentProducts(categoryData);
+            
+            window.attachmentCategories = categoryData;
+        }
+        
+        function updateAttachmentChart(categoryData) {
+            const ctx = document.getElementById('attachmentChart').getContext('2d');
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: categoryData.map(cat => cat.name),
+                    datasets: [
+                        {
+                            label: 'Attachment Rate %',
+                            data: categoryData.map(cat => cat.rate),
+                            backgroundColor: 'rgba(136, 132, 216, 0.8)',
+                            yAxisID: 'y-rate'
+                        },
+                        {
+                            label: 'Revenue',
+                            data: categoryData.map(cat => cat.revenue),
+                            backgroundColor: 'rgba(130, 202, 157, 0.8)',
+                            yAxisID: 'y-revenue'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        'y-rate': {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Attachment Rate %'
+                            }
+                        },
+                        'y-revenue': {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Revenue ($)'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.dataset.label === 'Revenue') {
+                                        return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                                    }
+                                    return context.dataset.label + ': ' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function displayAttachmentProducts(categoryData) {
+            const content = document.getElementById('attachmentProductsContent');
+            
+            if (categoryData.length === 0) {
+                content.innerHTML = '<p class="text-gray-500">No attachment data available for the selected date range.</p>';
+            } else {
+                content.innerHTML = `
+                    <div class="grid grid-cols-1 grid-cols-3">
+                        ${categoryData.map(category => `
+                            <div class="item-card" onclick="showCategoryDetails('${category.name}')">
+                                <h3>${category.name}</h3>
+                                <div class="text-sm">
+                                    <div class="font-medium mb-2">Top Products</div>
+                                    ${category.topProducts.slice(0, 2).map(product => `
+                                        <div class="mb-2">
+                                            <div class="truncate font-medium" title="${product.description}">
+                                                ${product.description}
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-xs text-gray-500">${product.attachmentRate}% with Mattress</span>
+                                                <span>${formatCurrency(product.revenue)}</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+        
+        function showCategoryDetails(categoryName) {
+            const category = window.attachmentCategories.find(c => c.name === categoryName);
+            if (!category) return;
+            
+            const content = document.getElementById('attachmentProductsContent');
+            content.innerHTML = `
+                <div>
+                    <a href="#" onclick="displayAttachmentProducts(window.attachmentCategories); return false;" 
+                       class="back-button">
+                        ← Back to all categories
+                    </a>
+                    <h3 class="font-semibold" style="font-size: 18px;">${categoryName} Products with Mattress Purchases</h3>
+                    
+                    <div style="overflow-x: auto; margin-top: 16px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>SKU</th>
+                                    <th>Units Sold</th>
+                                    <th>Revenue</th>
+                                    <th>Avg Price</th>
+                                    <th>Attachment Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${category.topProducts.map((product, idx) => `
+                                    <tr>
+                                        <td class="font-medium">${product.description}</td>
+                                        <td>${product.sku || 'N/A'}</td>
+                                        <td>${product.count}</td>
+                                        <td>${formatCurrency(product.revenue)}</td>
+                                        <td>${formatCurrency(product.avgPrice)}</td>
+                                        <td>${product.attachmentRate}%</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
